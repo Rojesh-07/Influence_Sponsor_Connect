@@ -1,0 +1,29 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h2 class="text-center mb-4">Login</h2>
+                    <form method="post">
+                        <div class="form-group">
+                            <label for="username">Username</label>
+                            <input type="text" id="username" name="username" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" id="password" name="password" class="form-control" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">Login</button>
+                    </form>
+                    <div class="mt-4">
+                        <a href="{{ url_for('Isignup') }}" class="btn btn-outline-secondary btn-block">Influencer Signup</a>
+                        <a href="{{ url_for('Ssignup') }}" class="btn btn-outline-secondary btn-block mt-2">Sponsor Signup</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

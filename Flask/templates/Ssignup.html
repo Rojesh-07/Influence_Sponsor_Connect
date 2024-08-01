@@ -1,0 +1,32 @@
+{% extends "layout.html" %}
+
+{% block title %}Sponsor Signup{% endblock %}
+
+{% block content %}
+    <div id="overview" class="container mt-5">
+        <form method="post" action="{{ url_for('Ssignup') }}" class="border p-4 bg-light rounded">
+            <h2 class="mb-4">Sponsor Signup</h2>
+            <div class="form-group">
+                <label for="username">Enter Username</label>
+                <input type="text" id="username" name="username" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Enter Password</label>
+                <input type="password" id="password" name="password" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="company_name">Enter Company Name</label>
+                <input type="text" id="company_name" name="company_name" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="industry">Enter Industry</label>
+                <input type="text" id="industry" name="industry" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="budget">Enter Budget</label>
+                <input type="text" id="budget" name="budget" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Signup</button>
+        </form>
+    </div>
+{% endblock %}

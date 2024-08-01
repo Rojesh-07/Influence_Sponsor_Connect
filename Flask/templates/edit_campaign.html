@@ -1,0 +1,48 @@
+{% extends "layout.html" %}
+
+{% block content %}
+    <h1>Edit Campaign</h1>
+    <form method="post" action="{{ url_for('edit_campaign', campaign_id=campaign.id) }}">
+        <div class="form-group">
+            <label for="campaign_name">Campaign Name</label>
+            <input type="text" class="form-control" id="campaign_name" name="campaign_name" value="{{ campaign.campaign_name }}" required>
+        </div>
+        <div class="form-group">
+            <label for="category">Category</label>
+            <input type="text" class="form-control" id="category" name="category" value="{{ campaign.category }}" required>
+        </div>
+        <div class="form-group">
+            <label for="budget">Budget</label>
+            <input type="number" class="form-control" id="budget" name="budget" value="{{ campaign.budget }}" required>
+        </div>
+        <div class="form-group">
+            <label for="status">Status</label>
+            <select class="form-control" id="status" name="status" required>
+                <option value="planning" {% if campaign.status == 'planning' %}selected{% endif %}>Planning</option>
+                <option value="active" {% if campaign.status == 'active' %}selected{% endif %}>Active</option>
+                <option value="completed" {% if campaign.status == 'completed' %}selected{% endif %}>Completed</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="products">Products</label>
+            <textarea class="form-control" id="products" name="products" rows="3" required>{{ campaign.products }}</textarea>
+        </div>
+        <div class="form-group">
+            <label for="goals">Goals</label>
+            <textarea class="form-control" id="goals" name="goals" rows="3" required>{{ campaign.goals }}</textarea>
+        </div>
+        <div class="form-group">
+            <label for="progress">Progress (%)</label>
+            <input type="number" class="form-control" id="progress" name="progress" min="0" max="100" value="{{ campaign.progress }}" required>
+        </div>
+        <div class="form-group">
+            <label for="start_date">Start Date</label>
+            <input type="date" class="form-control" id="start_date" name="start_date" value="{{ campaign.start_date }}" required>
+        </div>
+        <div class="form-group">
+            <label for="end_date">End Date</label>
+            <input type="date" class="form-control" id="end_date" name="end_date" value="{{ campaign.end_date }}" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+    </form>
+{% endblock %}

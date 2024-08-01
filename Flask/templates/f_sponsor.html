@@ -1,0 +1,43 @@
+{% extends "layout.html" %}
+
+{% block content %}
+    <h1>Find Influencers and Campaigns</h1>
+    <form method="post" action="{{ url_for('sfind') }}">
+        <div class="form-group">
+            <label for="search_query">Search</label>
+            <input type="text" id="search_query" name="search_query" class="form-control" placeholder="Enter search term" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Search</button>
+    </form>
+
+    {% if results2 %}
+        <div class="mt-4">
+            <h2>Search Results</h2>
+            <ul class="list-group">
+                {% if results2.users %}
+                    <h3 class="mt-3">Influencers</h3>
+                    {% for user in results2.users %}
+                        <li class="list-group-item">
+                            <strong>{{ user.name }}</strong> - Influencer<br>
+                            Username: {{ user.username }}<br>
+                            Category: {{ user.category }}<br>
+                            Niche: {{ user.niche }}<br>
+                        </li>
+                    {% endfor %}
+                {% endif %}
+                
+                {% if results2.campaigns %}
+                    <h3 class="mt-3">Campaigns</h3>
+                    {% for campaign in results2.campaigns %}
+                        <li class="list-group-item">
+                            <strong>{{ campaign.campaign_name }}</strong> - Campaign<br>
+                            Category: {{ campaign.category }}<br>
+                            Products: {{ campaign.products }}<br>
+                            Goals: {{ campaign.goals }}<br>
+                        </li>
+                    {% endfor %}
+                {% endif %}
+            </ul>
+        </div>
+    {% endif %}
+{% endblock %}

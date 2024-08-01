@@ -1,0 +1,74 @@
+{% extends "layout.html" %}
+
+{% block content %}
+    <h1>Welcome, {{ sponsor_profile.name }}!</h1>
+
+    <!-- Update Profile Button -->
+    <button type="button" class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#updateProfileModal">
+        Update Profile
+    </button>
+
+    <!-- Active Campaigns -->
+    <div class="my-4">
+        <h2>Active Campaigns</h2>
+        {% for campaign in sponsor_profile.active_campaigns %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">{{ campaign.name }}</h5>
+                    <div class="progress">
+                        <div class="progress-bar" role="progressbar" style="width: {{ campaign.progress }}%;" aria-valuenow="{{ campaign.progress }}" aria-valuemin="0" aria-valuemax="100">{{ campaign.progress }}%</div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Requests sent -->
+    <div class="my-4">
+        <h2>Requests Sent</h2>
+        <ul class="list-group">
+            {% for request in sponsor_profile.new_requests %}
+                <li class="list-group-item">
+                    <h5>{{ request.influencer_name }}</h5>
+                    <p>{{ request.ad_details }}</p>
+                    <a href="#" class="btn btn-info">View</a>
+                    <a href="#" class="btn btn-primary">Edit</a>
+                    <a href="#" class="btn btn-danger">Delete</a>
+                    <a href="#" class="btn btn-warning">Renegotiate</a>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Update Profile Modal -->
+    <div class="modal fade" id="updateProfileModal" tabindex="-1" aria-labelledby="updateProfileModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="updateProfileModalLabel">Update Profile</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="post" action="{{ url_for('supdate_profile') }}">
+                    <div class="modal-body">
+                        <div class="form-group mb-3">
+                            <label for="username">Username</label>
+                            <input type="text" class="form-control" id="username" name="username" value="{{ sponsor_profile.username }}">
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="company_name">Company Name</label>
+                            <input type="text" class="form-control" id="company_name" name="company_name" value="{{ sponsor_profile.name }}">
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="category">Category</label>
+                            <input type="text" class="form-control" id="category" name="category" value="{{ sponsor_profile.category }}">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}

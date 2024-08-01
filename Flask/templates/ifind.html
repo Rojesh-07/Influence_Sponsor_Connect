@@ -1,0 +1,52 @@
+{% extends "layout.html" %}
+
+{% block content %}
+    <h1>Find Sponsors and Campaigns</h1>
+    <form method="post" action="{{ url_for('Ifind') }}">
+        <div class="form-group">
+            <label for="search_query">Search</label>
+            <input type="text" id="search_query" name="search_query" class="form-control" placeholder="Enter search term" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Search</button>
+    </form>
+
+    {% if results1 %}
+        <div class="mt-4">
+            <h2>Search Results</h2>
+
+            {% if results1.users %}
+                <h3>Users</h3>
+                <ul class="list-group mb-4">
+                    {% for user in results1.users %}
+                        <li class="list-group-item">
+                            <strong>{{ user.username }}</strong> - Sponsor<br>
+                            {% if user.company_name %}
+                                Company: {{ user.company_name }}<br>
+                            {% endif %}
+                            {% if user.name %}
+                                Name: {{ user.name }}<br>
+                            {% endif %}
+                            Category: {{ user.category }}<br>
+                            Niche: {{ user.niche }}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+            {% if results1.campaigns %}
+                <h3>Campaigns</h3>
+                <ul class="list-group">
+                    {% for campaign in results1.campaigns %}
+                        <li class="list-group-item">
+                            <strong>{{ campaign.campaign_name }}</strong><br>
+                            Category: {{ campaign.category }}<br>
+                            Products: {{ campaign.products }}<br>
+                            Goals: {{ campaign.goals }}<br>
+                            Budget: ${{ campaign.budget }}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+    {% endif %}
+{% endblock %}

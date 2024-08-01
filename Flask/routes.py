@@ -1,0 +1,462 @@
+from flask import render_template, url_for, flash, redirect, request
+from Flask import app, db, bcrypt
+from Flask.models import User
+from flask import Flask,render_template,request, redirect,url_for,flash,session
+from Flask.models import db,User,Campaign,AdRequest,FlaggedUser
+from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime
+from sqlalchemy.exc import IntegrityError
+from flask_login import login_required,login_user,logout_user
+
+
+@app.route('/')
+@app.route('/home')
+def landing_page():
+    return render_template('landing_page.html')
+
+@app.route('/about')
+def about():
+    return "Welcome to the Home Page"
+
+@app.route('/register')
+def register():
+    return "Welcome to the Home Page"
+
+
+# Login Page for both User and Influencer
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        user = User.query.filter_by(username=username).first()
+        
+        if user and check_password_hash(user.password, password):
+            session['user_id'] = user.id
+            session['role'] = user.role
+            login_user(user)
+            if user.role == 'sponsor':
+                return redirect(url_for('sprofile'))
+            elif user.role == 'influencer':
+                return redirect(url_for('iprofile'))
+        else:
+            flash('Invalid username or password', 'danger')
+    
+    return render_template('login.html')
+
+# Admin Login Page
+@app.route('/Alogin', methods=['GET', 'POST'])
+def Alogin():
+    if request.method == 'POST':
+        uname = request.form['username']
+        password = request.form['password']
+        user = User.query.filter_by(username=uname, role='admin').first()
+        if user and check_password_hash(user.password, password):
+            session['user_id'] = user.id
+            session['role'] = user.role
+            return redirect(url_for('admin_dash'))
+        else:
+            flash('Invalid username or password', 'danger')
+    return render_template('Alogin.html')
+
+
+# Sponsor signup
+@app.route('/Ssignup', methods=['GET', 'POST'])
+def Ssignup():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        company_name = request.form['company_name']
+        industry = request.form['industry']
+        budget = float(request.form['budget'])
+
+        # Validate form data
+        if not username or not password or not company_name or not industry or not budget:
+            flash('Please fill out all fields.', 'danger')
+            return redirect(url_for('Ssignup'))
+
+        # Create new sponsor user
+        new_user = User(
+            username=username,
+            password=generate_password_hash(password),
+            role='sponsor',
+            company_name=company_name,
+            name=None,
+            category=industry,
+            niche=None,
+            reach=None,
+            budget=budget,
+            platforms=None,
+            blacklist=False
+        )
+
+        try:
+            db.session.add(new_user)
+            db.session.commit()
+            flash('Signup successful! Please log in.', 'success')
+            return redirect(url_for('login'))
+        except IntegrityError:
+            db.session.rollback()
+            flash('Username already exists. Please choose a different username.', 'danger')
+
+    return render_template('Ssignup.html')
+
+
+
+# Influencer Signup
+@app.route('/Isignup', methods=['GET', 'POST'])
+def Isignup():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        name = request.form['name']
+        category = request.form['category']
+        niche = request.form['niche']
+        reach = int(request.form['reach'])
+        platforms = ','.join(request.form.getlist('platforms'))
+
+        new_user = User(
+            username=username,
+            password=generate_password_hash(password),
+            role='influencer',
+            company_name=None,
+            name=name,
+            category=category,
+            niche=niche,
+            reach=reach,
+            budget=None,
+            platforms=platforms,
+            blacklist=False
+        )
+
+        try:
+            db.session.add(new_user)
+            db.session.commit()
+            flash('Signup successful! Please log in.', 'success')
+            return redirect(url_for('login'))
+        except IntegrityError:
+            db.session.rollback()
+            flash('Username already exists. Please choose a different username.', 'danger')
+    
+    return render_template('Isignup.html')
+
+@app.route('/logout')
+def logout():
+    logout_user()
+    return render_template('landing_page.html')
+
+@app.route("/iprofile",methods=['GET','POST'])
+@login_required
+def iprofile():
+    user_id = session.get('user_id')
+    if not user_id:
+        return redirect(url_for('user_login'))
+
+    user = User.query.get_or_404(user_id)
+    if user.role != 'influencer':
+        return redirect(url_for('user_login'))
+
+    profile = {
+        'username': user.username,
+        'name': user.name,
+        'category': user.category,
+        'niche': user.niche,
+        'reach': user.reach,
+        'platforms': user.platforms.split(',') if user.platforms else [],
+        'ratings': 4.5,  # This should be calculated based on actual data
+        'earnings': 1000,  # This should be calculated based on actual data
+        'campaign_progress': 75,  # This should be calculated based on actual data
+        'profile_picture': 'path_to_profile_picture.jpg'  # This should be fetched from the database or storage
+    }
+
+    sponsor_requests = AdRequest.query.filter_by(influencer_name=user.username).all()
+    return render_template('Iprofile.html', profile=profile, sponsor_requests=sponsor_requests)
+
+@app.route('/update_profile', methods=['POST','GET'])
+@login_required
+def update_profile():
+    user_id = session.get('user_id')
+    if not user_id:
+        return redirect(url_for('user_login'))
+
+    user = User.query.get_or_404(user_id)
+    if user.role != 'influencer':
+        return redirect(url_for('user_login'))
+
+    user.username = request.form['username']
+    user.name = request.form['name']
+    user.category = request.form['category']
+    user.niche = request.form['niche']
+    user.reach = request.form['reach']
+    user.platforms = ','.join(request.form.getlist('platforms'))
+
+    db.session.commit()
+    flash('Profile updated successfully!', 'success')
+    
+    return redirect(url_for('iprofile'))
+
+@app.route('/Ifind',methods=['GET','POST'])
+@login_required
+def Ifind():
+    results1 = None
+    if request.method == 'POST':
+        search_query = request.form['search_query'].lower()
+        
+        # Search logic for users and campaigns
+        users = User.query.filter(
+            (User.role=='sponsor')&
+            ((User.username.ilike(f"%{search_query}%")) |
+            (User.company_name.ilike(f"%{search_query}%")) |
+            (User.name.ilike(f"%{search_query}%")) |
+            (User.category.ilike(f"%{search_query}%")) |
+            (User.niche.ilike(f"%{search_query}%"))
+        )).all()
+        
+        campaigns = Campaign.query.filter(
+            (Campaign.campaign_name.ilike(f"%{search_query}%")) |
+            (Campaign.category.ilike(f"%{search_query}%")) |
+            (Campaign.products.ilike(f"%{search_query}%")) |
+            (Campaign.goals.ilike(f"%{search_query}%"))
+        ).all()
+        
+        results1 = {
+            'users': users,
+            'campaigns': campaigns
+        }
+
+    return render_template('ifind.html',results1=results1)
+
+@app.route('/Istat')
+@login_required
+def Istat():
+    return render_template('Istat.html')
+
+@app.route('/request_action/<int:request_id>/<action>')
+def request_action(request_id, action):
+    username = session.get('username')
+
+    sponsor_requests = AdRequest.query.filter_by(influencer_name=username).all()
+    # Sample logic to handle request actions
+    for request in sponsor_requests:
+        if request['id'] == request_id:
+            if action in ['accept', 'reject', 'renegotiate']:
+                request['status'] = action
+                flash(f'Request {action}ed successfully.', 'success')
+                break
+    return redirect(url_for('iprofile'))
+
+
+@app.route("/sprofile",methods=['GET','POST'])
+def sprofile():
+    # Check if sponsor ID is in session
+    if 'user_id' in session:
+        sponsor_id = session['user_id']
+        # Fetch sponsor data from the database
+        sponsor = User.query.filter_by(id=sponsor_id, role='sponsor').first()
+        if sponsor:
+            active_campaigns = Campaign.query.filter_by(status='planning', user_id=sponsor_id).all()
+            new_requests = AdRequest.query.filter_by(status='pending', user_id=sponsor_id).all()
+            sponsor_profile_data = {
+                'username':sponsor.username,
+                'name': sponsor.company_name,
+                'category':sponsor.category,
+                'active_campaigns': [{'id': campaign.id, 'name': campaign.campaign_name, 'progress': campaign.progress} for campaign in active_campaigns],
+                'new_requests': [{'id': request.id, 'influencer_name': request.influencer_name, 'ad_details': request.ad_name} for request in new_requests]
+            }
+
+            return render_template('Sprofile.html', sponsor_profile=sponsor_profile_data)
+        else:
+            # Handle case where sponsor ID from session does not match any sponsor in the database
+            return "Sponsor not found."
+    else:
+        # Handle case where sponsor is not logged in
+        return "Please log in as a sponsor."
+    
+
+@app.route('/supdate_profile', methods=['POST'])
+def supdate_profile():
+    user_id = session.get('user_id')
+    if not user_id:
+        return redirect(url_for('user_login'))
+
+    user = User.query.get_or_404(user_id)
+    if user.role != 'sponsor':
+        return redirect(url_for('user_login'))
+
+    user.username = request.form['username']
+    user.company_name = request.form['company_name']
+    user.category = request.form['category']
+
+    db.session.commit()
+    flash('Profile updated successfully!', 'success')
+    
+    return redirect(url_for('s_profile'))
+
+@app.route('/sponsor/campaigns')
+def s_campaigns():
+    campaigns = Campaign.query.all()
+    return render_template('s_campaigns.html',campaigns=campaigns)
+
+@app.route('/sponsor/stats')
+def sstats():
+    return render_template('s_stats.html')
+
+
+
+@app.route('/sponsor/find_sponsor',methods=['GET','POST'])
+def sfind():
+    results2 = None
+    if request.method == 'POST':
+        search_query = request.form['search_query'].lower()
+        
+        # Search logic for users and campaigns
+        users = User.query.filter(
+            (User.role=='influencer')&
+            ((User.username.ilike(f"%{search_query}%")) |
+            (User.company_name.ilike(f"%{search_query}%")) |
+            (User.name.ilike(f"%{search_query}%")) |
+            (User.category.ilike(f"%{search_query}%")) |
+            (User.niche.ilike(f"%{search_query}%"))
+        )).all()
+        
+        campaigns = Campaign.query.filter(
+            (Campaign.campaign_name.ilike(f"%{search_query}%")) |
+            (Campaign.category.ilike(f"%{search_query}%")) |
+            (Campaign.products.ilike(f"%{search_query}%")) |
+            (Campaign.goals.ilike(f"%{search_query}%"))
+        ).all()
+        
+        results2 = {
+            'users': users,
+            'campaigns': campaigns
+        }
+    return render_template('f_sponsor.html',results2=results2)
+
+
+@app.route('/add_campaign', methods=['GET', 'POST'])
+def add_campaign():
+    if request.method == 'POST':
+        user_id = session.get('user_id')
+        campaign_name = request.form['campaign_name']
+        category = request.form['category']
+        budget = float(request.form['budget'])
+        status = request.form['status']
+        products = request.form['products']
+        goals = request.form['goals']
+        progress = int(request.form['progress'])
+        start_date = datetime.strptime(request.form['start_date'], '%Y-%m-%d').date()
+        end_date = datetime.strptime(request.form['end_date'], '%Y-%m-%d').date()
+
+        # Create new campaign
+        new_campaign = Campaign(
+            user_id=user_id,
+            campaign_name=campaign_name,
+            category=category,
+            budget=budget,
+            status=status,
+            products=products,
+            goals=goals,
+            progress=progress,
+            start_date=start_date,
+            end_date=end_date
+        )
+
+        # Add campaign to the database
+        db.session.add(new_campaign)
+        db.session.commit()
+
+        return redirect(url_for('s_campaigns'))  # Redirect to sponsor dashboard after campaign creation
+
+    return render_template('add_campaign.html')
+
+@app.route('/edit_campaign/<int:campaign_id>', methods=['GET', 'POST'])
+def edit_campaign(campaign_id):
+    campaign = Campaign.query.get_or_404(campaign_id)
+
+    if request.method == 'POST':
+        campaign.campaign_name = request.form['campaign_name']
+        campaign.category = request.form['category']
+        campaign.budget = float(request.form['budget'])
+        campaign.status = request.form['status']
+        campaign.products = request.form['products']
+        campaign.goals = request.form['goals']
+        campaign.progress = int(request.form['progress'])
+        campaign.start_date = datetime.strptime(request.form['start_date'], '%Y-%m-%d').date()
+        campaign.end_date = datetime.strptime(request.form['end_date'], '%Y-%m-%d').date()
+
+        db.session.commit()
+        return redirect(url_for('s_campaigns'))  # Redirect to sponsor dashboard after updating campaign
+
+    return render_template('edit_campaign.html', campaign=campaign)
+
+
+
+@app.route('/delete_campaign/<int:campaign_id>', methods=['POST','GET'])
+def delete_campaign(campaign_id):
+    campaign = Campaign.query.get_or_404(campaign_id)
+    db.session.delete(campaign)
+    db.session.commit()  # Commit the deletion to the database
+    flash('Campaign deleted successfully!', 'success')
+    return redirect(url_for('s_campaigns'))
+
+######################################
+
+
+@app.route('/add_ad_request/<int:campaign_id>', methods=['GET', 'POST'])
+def add_ad_request(campaign_id):
+    #campaign = Campaign.query.get_or_404(campaign_id)
+    if request.method == 'POST':
+        ad_name = request.form['ad_name']
+        description = request.form['description']
+        budget = float(request.form['budget'])
+        goal = request.form['goal']
+        influencer_name = request.form['influencer_name']
+        status = request.form['status']
+        user_id=session.get('user_id')
+        new_ad_request = AdRequest(
+            campaign_id=campaign_id,
+            ad_name=ad_name,
+            description=description,
+            budget=budget,
+            goal=goal,
+            influencer_name=influencer_name,
+            status=status,
+            user_id=user_id
+        )
+
+        db.session.add(new_ad_request)
+        db.session.commit()
+        flash('Ad request created successfully!', 'success')
+        return redirect(url_for('s_campaigns'))    
+    return render_template('add_ad_request.html', campaign_id=campaign_id)
+
+@app.route('/view_ad_requests/<int:campaign_id>', methods=['GET'])
+def view_ad_requests(campaign_id):
+    campaign = Campaign.query.get_or_404(campaign_id)
+    ad_requests = AdRequest.query.filter_by(campaign_id=campaign_id).all()
+    return render_template('view_ad_request.html', campaign=campaign, ad_requests=ad_requests)
+
+@app.route('/edit_ad_request/<int:ad_request_id>', methods=['POST'])
+def edit_ad_request(ad_request_id):
+    ad_request = AdRequest.query.get_or_404(ad_request_id)
+    ad_request.ad_name = request.form['ad_name']
+    ad_request.description = request.form['description']
+    ad_request.budget = float(request.form['budget'])
+    ad_request.goal = request.form['goal']
+    ad_request.influencer_name = request.form['influencer_name']
+    ad_request.status = request.form['status']
+
+    db.session.commit()
+    flash('Ad request updated successfully!', 'success')
+    return redirect(url_for('view_ad_requests', campaign_id=ad_request.campaign_id))
+
+@app.route('/delete_ad_request/<int:ad_request_id>', methods=['POST'])
+def delete_ad_request(ad_request_id):
+    ad_request = AdRequest.query.get_or_404(ad_request_id)
+    campaign_id = ad_request.campaign_id
+    db.session.delete(ad_request)
+    db.session.commit()  # Commit the deletion to the database
+    flash('Ad request deleted successfully!', 'success')
+    return redirect(url_for('view_ad_requests', campaign_id=campaign_id))
+
+
