@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from flask_login import login_required,login_user,logout_user
 
 
+
 @app.route('/')
 @app.route('/home')
 def landing_page():
