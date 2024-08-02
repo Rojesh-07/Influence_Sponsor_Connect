@@ -34,14 +34,29 @@ def login():
         password = request.form['password']
         user = User.query.filter_by(username=username).first()
         
-        if user and check_password_hash(user.password, password):
-            session['user_id'] = user.id
-            session['role'] = user.role
-            login_user(user)
-            if user.role == 'sponsor':
-                return redirect(url_for('sprofile'))
-            elif user.role == 'influencer':
-                return redirect(url_for('iprofile'))
+        if user:
+            # Check if the user is flagged
+            flagged_user = FlaggedUser.query.filter_by(user_id=user.id).first()
+            if flagged_user:
+                flash('Your account is flagged. Please contact admin. for assistance', 'danger')
+                logout_user()
+                return redirect(url_for('login'))
+            
+            # Validate password
+            if check_password_hash(user.password, password):
+                session['user_id'] = user.id
+                session['role'] = user.role
+                
+                # Log the user in
+                login_user(user)
+                
+                # Redirect based on user role
+                if user.role == 'sponsor':
+                    return redirect(url_for('sprofile'))
+                elif user.role == 'influencer':
+                    return redirect(url_for('iprofile'))
+            else:
+                flash('Invalid username or password', 'danger')
         else:
             flash('Invalid username or password', 'danger')
     
@@ -51,15 +66,19 @@ def login():
 @app.route('/Alogin', methods=['GET', 'POST'])
 def Alogin():
     if request.method == 'POST':
-        uname = request.form['username']
+        username = request.form['username']
         password = request.form['password']
-        user = User.query.filter_by(username=uname, role='admin').first()
+        user = User.query.filter_by(username=username,role='admin').first()
+        
         if user and check_password_hash(user.password, password):
             session['user_id'] = user.id
             session['role'] = user.role
-            return redirect(url_for('admin_dash'))
+            login_user(user)
+            if user.role == 'admin':
+                return redirect(url_for('admin_dash'))
         else:
             flash('Invalid username or password', 'danger')
+    
     return render_template('Alogin.html')
 
 
@@ -154,6 +173,7 @@ def iprofile():
     user_id = session.get('user_id')
     if not user_id:
         return redirect(url_for('login'))
+    
 
     user = User.query.get_or_404(user_id)
     if user.role == 'sponsor':
@@ -172,9 +192,10 @@ def iprofile():
     }
 
     sponsor_requests = AdRequest.query.filter_by(influencer_name=user.username,status='NIL').all()
-    accepted_requests = AdRequest.query.filter(AdRequest.influencer_name == user.username,AdRequest.status.in_(["accept", "renegotiate"])).all()
+    accepted_requests = AdRequest.query.filter_by(influencer_name=user.username,status='accept').all()
+    reg_requests= AdRequest.query.filter_by(influencer_name=user.username,status='renegotiate').all()
     rejected_requests = AdRequest.query.filter_by(influencer_name=user.username,status="reject").all()
-    return render_template('Iprofile.html', profile=profile, sponsor_requests=sponsor_requests,accepted_requests=accepted_requests,rejected_requests=rejected_requests)
+    return render_template('Iprofile.html', profile=profile, sponsor_requests=sponsor_requests,accepted_requests=accepted_requests,rejected_requests=rejected_requests,reg=reg_requests)
 
 @app.route('/update_profile', methods=['POST','GET'])
 @login_required
@@ -256,9 +277,10 @@ def request_action(request_id, action):
                 new_budget = request.form.get('new_budget')
                 if new_budget:
                     try:
+                        print(request.action)
                         request.budget = float(new_budget)
-                        request.status = 'renegotiate'
                         db.session.commit()  # Save changes to the database
+                        print(request.action)
                         flash('Request renegotiated successfully.', 'success')
                     except ValueError:
                         flash('Invalid budget value.', 'error')
@@ -289,6 +311,7 @@ def renegotiate(request_id):
         # Process the form data
         # Example: Update ad_request with new values from the form
         ad_request.budget = request.form['new_budget']
+        ad_request.status = 'renegotiate'
         db.session.commit()  # Save changes to the database
         
         flash('Renegotiation request submitted successfully.', 'success')
@@ -315,14 +338,17 @@ def sprofile():
         # Fetch sponsor data from the database
         sponsor = User.query.filter_by(id=sponsor_id, role='sponsor').first()
         if sponsor:
-            active_campaigns = Campaign.query.filter_by(status='planning', user_id=sponsor_id).all()
-            new_requests = AdRequest.query.filter_by(status='pending', user_id=sponsor_id).all()
+            # active_campaigns = Campaign.query.filter_by(status='planning', user_id=sponsor_id).all()
+            new_requests = AdRequest.query.filter_by(status='NIL' , user_id=sponsor_id).all()
+
+            active_campaigns = Campaign.query.filter_by( user_id=sponsor_id).all()
             sponsor_profile_data = {
                 'username':sponsor.username,
                 'name': sponsor.company_name,
                 'category':sponsor.category,
                 'active_campaigns': [{'id': campaign.id, 'name': campaign.campaign_name, 'progress': campaign.progress} for campaign in active_campaigns],
                 'new_requests': [{'id': request.id, 'influencer_name': request.influencer_name, 'ad_details': request.ad_name} for request in new_requests]
+                
             }
 
             return render_template('Sprofile.html', sponsor_profile=sponsor_profile_data)
@@ -334,7 +360,8 @@ def sprofile():
         return "Please log in as a sponsor."
     
 
-@app.route('/supdate_profile', methods=['POST'])
+    
+@app.route('/supdate_profile', methods=['GET','POST'])
 @login_required
 def supdate_profile():
     user_id = session.get('user_id')
@@ -352,20 +379,23 @@ def supdate_profile():
     db.session.commit()
     flash('Profile updated successfully!', 'success')
     
-    return redirect(url_for('s_profile'))
+    return redirect(url_for('sprofile'))
+
+
 
 @app.route('/sponsor/campaigns')
 @login_required
 def s_campaigns():
-    campaigns = Campaign.query.all()
-    return render_template('s_campaigns.html',campaigns=campaigns)
+    # Fetch campaigns related to the logged-in user
+    user_id = session.get('user_id')
+    campaigns = Campaign.query.filter_by(user_id=user_id).all()
+    return render_template('s_campaigns.html', campaigns=campaigns)
+
 
 @app.route('/sponsor/stats')
 @login_required
 def sstats():
     return render_template('s_stats.html')
-
-
 
 @app.route('/sponsor/find_sponsor',methods=['GET','POST'])
 @login_required
@@ -406,7 +436,7 @@ def add_campaign():
         campaign_name = request.form['campaign_name']
         category = request.form['category']
         budget = float(request.form['budget'])
-        status = "NIL"
+        status = request.form['status']
         products = request.form['products']
         goals = request.form['goals']
         progress = int(request.form['progress'])
@@ -477,7 +507,7 @@ def add_ad_request(campaign_id):
         budget = float(request.form['budget'])
         goal = request.form['goal']
         influencer_name = request.form['influencer_name']
-        status = request.form['status']
+        status = "NIL"
         user_id=session.get('user_id')
         new_ad_request = AdRequest(
             campaign_id=campaign_id,
@@ -496,12 +526,13 @@ def add_ad_request(campaign_id):
         return redirect(url_for('s_campaigns'))    
     return render_template('add_ad_request.html', campaign_id=campaign_id)
 
-@app.route('/view_ad_requests/<int:campaign_id>', methods=['GET'])
+@app.route('/view_ad_requests/<int:campaign_id>', methods=['GET','POST'])
 @login_required
 def view_ad_requests(campaign_id):
-    c = Campaign.query.get_or_404(id)
+    c = Campaign.query.get_or_404(campaign_id)  # Use campaign_id here
     ad = AdRequest.query.filter_by(campaign_id=campaign_id).all()
     return render_template('view_ad_request.html', campaign=c, ad_requests=ad)
+
 
 @app.route('/edit_ad_request/<int:ad_request_id>', methods=['POST'])
 @login_required
@@ -512,11 +543,11 @@ def edit_ad_request(ad_request_id):
     ad_request.budget = float(request.form['budget'])
     ad_request.goal = request.form['goal']
     ad_request.influencer_name = request.form['influencer_name']
-    ad_request.status = request.form['status']
+    ad_request.status = "NIL"
 
     db.session.commit()
     flash('Ad request updated successfully!', 'success')
-    return redirect(url_for('view_ad_requests', campaign_id=ad_request.id))
+    return redirect(url_for('view_ad_requests', campaign_id=ad_request.campaign_id))
 
 ## Delete Ad Request
 @app.route('/delete_ad_request/<int:ad_request_id>', methods=['POST'])
@@ -538,18 +569,20 @@ def delete_ad_request(ad_request_id):
 ## Admin DashBoard
 
 @app.route('/admin_dash')
+@login_required
 def admin_dash():
     users = User.query.filter(~User.flagged.any(),User.role != 'admin').all()
     flagged_users = FlaggedUser.query.all()
     
     # Fetch flagged campaigns as needed (replace with your actual logic)
-    flagged_campaigns = []  # Example, replace with actual data fetching logic
+    flagged_campaigns = []  
 
     # Fetch ongoing campaigns and their progress
     campaigns = Campaign.query.all()
     return render_template('admin_dash.html', users=users, flagged_users=flagged_users, flagged_campaigns=flagged_campaigns, campaigns=campaigns)
 
 @app.route('/flag_user/<int:user_id>', methods=['POST'])
+@login_required
 def flag_user(user_id):
     user = User.query.get(user_id)
     if user:
@@ -565,6 +598,7 @@ def flag_user(user_id):
     return redirect(url_for('admin_dash'))
 
 @app.route('/unflag_user/<int:user_id>', methods=['POST'])
+@login_required
 def unflag_user(user_id):
     flagged_user = FlaggedUser.query.filter_by(user_id=user_id).first()
     if flagged_user:
@@ -574,16 +608,28 @@ def unflag_user(user_id):
     return redirect(url_for('admin_dash'))
 
 @app.route('/delete_user/<int:user_id>', methods=['POST'])
+@login_required
 def delete_user(user_id):
     flagged_user = FlaggedUser.query.filter_by(user_id=user_id).first()
+    
     if flagged_user:
         user = User.query.get(user_id)
+        campaigns = Campaign.query.filter_by(user_id=flagged_user.user_id).all()
+
+        # Delete associated campaigns
+        for campaign in campaigns:
+            db.session.delete(campaign)
+        
+        # Delete the flagged user and the actual user
         db.session.delete(flagged_user)
         db.session.delete(user)
         db.session.commit()
+
         flash('Flagged user has been deleted successfully.', 'success')
     else:
         flash('User must be flagged before deletion.', 'warning')
+    
     return redirect(url_for('admin_dash'))
+
 
 

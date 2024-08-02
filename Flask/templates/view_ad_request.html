@@ -1,35 +1,43 @@
 {% extends "layout.html" %}
 
 {% block content %}
-    <h1>Ad Requests for Campaign: {{ campaign.campaign_name }}</h1>
+    <h1 class="my-4">Ad Requests for Campaign: {{ campaign.campaign_name }}</h1>
     <div class="row">
         {% for ad_request in ad_requests %}
-            <div class="col-md-4 mb-4">
-                <div class="card">
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card shadow-sm border-light">
                     <div class="card-body">
                         <h5 class="card-title">{{ ad_request.ad_name }}</h5>
                         <p class="card-text"><strong>Description:</strong> {{ ad_request.description }}</p>
                         <p class="card-text"><strong>Budget:</strong> ${{ ad_request.budget }}</p>
                         <p class="card-text"><strong>Goal:</strong> {{ ad_request.goal }}</p>
                         <p class="card-text"><strong>Status:</strong> {{ ad_request.status }}</p>
-                        <button class="btn btn-warning btn-sm" data-toggle="modal" data-target="#editAdRequestModal{{ ad_request.id }}">Edit</button>
-                        <form method="post" action="{{ url_for('delete_ad_request', ad_request_id=ad_request.id) }}" style="display:inline;">
-                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                        </form>
+                        <div class="d-flex justify-content-between">
+                            <button class="btn btn-warning btn-sm" data-toggle="modal" data-target="#editAdRequestModal{{ ad_request.id }}">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <form method="post" action="{{ url_for('delete_ad_request', ad_request_id=ad_request.id) }}">
+                                <button type="submit" class="btn btn-danger btn-sm">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
         {% endfor %}
     </div>
-    <a href="{{ url_for('s_campaigns') }}" class="btn btn-primary">Back to Campaigns</a>
+    <a href="{{ url_for('s_campaigns') }}" class="btn btn-primary">
+        <i class="fas fa-arrow-left"></i> Back to Campaigns
+    </a>
 
     {% for ad_request in ad_requests %}
     <!-- Edit Ad Request Modal -->
     <div class="modal fade" id="editAdRequestModal{{ ad_request.id }}" tabindex="-1" role="dialog" aria-labelledby="editAdRequestModalLabel{{ ad_request.id }}" aria-hidden="true">
-        <div class="modal-dialog" role="document">
+        <div class="modal-dialog modal-dialog-scrollable" role="document">
             <div class="modal-content">
                 <form method="post" action="{{ url_for('edit_ad_request', ad_request_id=ad_request.id) }}">
-                    <div class="modal-header">
+                    <div class="modal-header bg-primary text-white">
                         <h5 class="modal-title" id="editAdRequestModalLabel{{ ad_request.id }}">Edit Ad Request</h5>
                         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                             <span aria-hidden="true">&times;</span>
@@ -60,7 +68,9 @@
                             <label for="influencer_name{{ ad_request.id }}">Influencer Name</label>
                             <input type="text" class="form-control" id="influencer_name{{ ad_request.id }}" name="influencer_name" value="{{ ad_request.influencer_name }}">
                         </div>
-                        <a href="{{ url_for('sfind') }}" class="btn btn-secondary mb-3">Find Influencer</a>
+                        <a href="{{ url_for('sfind') }}" class="btn btn-secondary mb-3">
+                            <i class="fas fa-search"></i> Find Influencer
+                        </a>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -72,3 +82,6 @@
     </div>
     {% endfor %}
 {% endblock %}
+
+<!-- Add Font Awesome for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">

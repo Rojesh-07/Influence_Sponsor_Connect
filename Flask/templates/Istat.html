@@ -1,22 +1,45 @@
 {% extends "layout.html" %}
 
 {% block content %}
-    <h1>Influencer Stats</h1>
+    <h1 class="text-center my-5">Influencer Stats</h1>
 
-    <div class="my-4">
-        <h2>Campaign Engagement</h2>
-        <canvas id="campaignEngagementChart"></canvas>
+    <div class="container">
+        <div class="my-4">
+            <h2 class="text-center">Campaign Engagement</h2>
+            <canvas id="campaignEngagementChart" class="chart"></canvas>
+        </div>
+
+        <div class="my-4">
+            <h2 class="text-center">Earnings Over Time</h2>
+            <canvas id="earningsOverTimeChart" class="chart"></canvas>
+        </div>
+
+        <div class="my-4">
+            <h2 class="text-center">Ad Performance</h2>
+            <canvas id="adPerformanceChart" class="chart"></canvas>
+        </div>
     </div>
 
-    <div class="my-4">
-        <h2>Earnings Over Time</h2>
-        <canvas id="earningsOverTimeChart"></canvas>
-    </div>
-
-    <div class="my-4">
-        <h2>Ad Performance</h2>
-        <canvas id="adPerformanceChart"></canvas>
-    </div>
+    <style>
+        .chart {
+            max-width: 100%;
+            height: auto;
+        }
+        h1, h2 {
+            font-family: 'Roboto', sans-serif;
+        }
+        h1 {
+            color: #333;
+        }
+        h2 {
+            color: #555;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+    </style>
 
     <script>
         // Campaign Engagement
@@ -27,11 +50,46 @@
                 labels: ['Campaign 1', 'Campaign 2', 'Campaign 3', 'Campaign 4'],
                 datasets: [{
                     label: 'Engagement',
-                    data: [20, 30, 50, 40],
-                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    data: [25, 45, 35, 50],
+                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
                     borderColor: 'rgba(75, 192, 192, 1)',
                     borderWidth: 1
                 }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            color: '#333'
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(tooltipItem) {
+                                return tooltipItem.dataset.label + ': ' + tooltipItem.raw + '%';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                }
             }
         });
 
@@ -43,11 +101,47 @@
                 labels: ['January', 'February', 'March', 'April', 'May', 'June'],
                 datasets: [{
                     label: 'Earnings',
-                    data: [1000, 1500, 2000, 2500, 3000, 3500],
+                    data: [1200, 1800, 2200, 2700, 3200, 3800],
                     borderColor: 'rgba(153, 102, 255, 1)',
                     backgroundColor: 'rgba(153, 102, 255, 0.2)',
                     fill: true,
+                    tension: 0.1
                 }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            color: '#333'
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(tooltipItem) {
+                                return tooltipItem.dataset.label + ': $' + tooltipItem.raw;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value;
+                            }
+                        }
+                    }
+                }
             }
         });
 
@@ -58,11 +152,29 @@
             data: {
                 labels: ['Ad 1', 'Ad 2', 'Ad 3', 'Ad 4'],
                 datasets: [{
-                    data: [30, 40, 20, 10],
-                    backgroundColor: ['rgba(255, 159, 64, 0.2)', 'rgba(255, 205, 86, 0.2)', 'rgba(75, 192, 192, 0.2)', 'rgba(153, 102, 255, 0.2)'],
+                    data: [15, 35, 25, 25],
+                    backgroundColor: ['rgba(255, 159, 64, 0.6)', 'rgba(255, 205, 86, 0.6)', 'rgba(75, 192, 192, 0.6)', 'rgba(153, 102, 255, 0.6)'],
                     borderColor: ['rgba(255, 159, 64, 1)', 'rgba(255, 205, 86, 1)', 'rgba(75, 192, 192, 1)', 'rgba(153, 102, 255, 1)'],
-                    borderWidth: 1
+                    borderWidth: 2
                 }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#333'
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(tooltipItem) {
+                                return tooltipItem.label + ': ' + tooltipItem.raw + '%';
+                            }
+                        }
+                    }
+                }
             }
         });
     </script>

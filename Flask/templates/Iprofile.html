@@ -1,6 +1,59 @@
 {% extends "layout.html" %}
 
 {% block content %}
+
+<style>
+    .list-group-item {
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+    }
+
+    .list-group-item:hover {
+        transform: translateY(-5px);
+    }
+
+    .btn-group .btn {
+        margin-left: 5px;
+        transition: background 0.3s ease;
+    }
+
+    .btn-group .btn:hover {
+        background-color: rgba(0, 123, 255, 0.1);
+    }
+
+    [data-toggle="tooltip"] {
+        position: relative;
+    }
+
+    [data-toggle="tooltip"]::before {
+        content: attr(title);
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #333;
+        color: #fff;
+        padding: 5px 10px;
+        border-radius: 5px;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+        white-space: nowrap;
+        font-size: 0.8rem;
+    }
+
+    [data-toggle="tooltip"]:hover::before {
+        opacity: 1;
+        visibility: visible;
+    }
+</style>
+
+<script>
+    $(document).ready(function() {
+        $('[data-toggle="tooltip"]').tooltip();
+    });
+</script>
     <div class="container mt-4">
         <div class="row">
             <div class="col-md-4 text-center">
@@ -21,7 +74,7 @@
             </div>
         </div>
         <div class="my-4">
-            <h2>Accepted Requests from Sponsors</h2>
+            <h2>Accepted Requests</h2>
             <ul class="list-group">
                 {% for request in accepted_requests %}
                     <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -35,7 +88,7 @@
             </ul>
         </div>
         <div class="my-4">
-            <h2>Incoming Requests from Sponsors</h2>
+            <h2>Incoming Requests</h2>
             <ul class="list-group">
                 {% for request in sponsor_requests %}
                     <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -43,17 +96,36 @@
                             <h5 class="mb-1">{{ request.ad_name }}</h5>
                             <p class="mb-1">{{ request.description }}</p>
                         </div>
-                        <div>
-                            <a href="{{ url_for('request_action', request_id=request.id, action='accept') }}" class="btn btn-success btn-sm">Accept</a>
-                            <a href="{{ url_for('request_action', request_id=request.id, action='reject') }}" class="btn btn-danger btn-sm">Reject</a>
-                            <a href="{{ url_for('request_action', request_id=request.id, action='renegotiate') }}" class="btn btn-warning btn-sm">Renegotiate</a>
+                        <div class="btn-group" role="group">
+                            <a href="{{ url_for('request_action', request_id=request.id, action='accept') }}" class="btn btn-success btn-sm" data-toggle="tooltip" title="Accept">
+                                <i class="fas fa-check"></i>
+                            </a>
+                            <a href="{{ url_for('request_action', request_id=request.id, action='reject') }}" class="btn btn-danger btn-sm" data-toggle="tooltip" title="Reject">
+                                <i class="fas fa-times"></i>
+                            </a>
+                            <a href="{{ url_for('request_action', request_id=request.id, action='renegotiate') }}" class="btn btn-warning btn-sm" data-toggle="tooltip" title="Renegotiate">
+                                <i class="fas fa-handshake"></i>
+                            </a>
                         </div>
                     </li>
                 {% endfor %}
             </ul>
         </div>
         <div class="my-4">
-            <h2>Rejected Requests from Sponsors</h2>
+            <h2>Renegotiated Requests </h2>
+            <ul class="list-group">
+                {% for request in reg %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-1">{{ request.ad_name }}</h5>
+                            <p class="mb-1">{{ request.description }}</p>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="my-4">
+            <h2>Rejected Requests</h2>
             <ul class="list-group">
                 {% for request in rejected_requests %}
                     <li class="list-group-item d-flex justify-content-between align-items-center">
