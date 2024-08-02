@@ -13,17 +13,19 @@ from flask_login import login_required,login_user,logout_user
 @app.route('/')
 @app.route('/home')
 def landing_page():
-    return render_template('landing_page.html')
+    user_id = session.get('user_id')
+    if not user_id:
+        return render_template('landing_page.html')
 
-@app.route('/about')
-def about():
-    return "Welcome to the Home Page"
-
-@app.route('/register')
-def register():
-    return "Welcome to the Home Page"
-
-
+    user = User.query.get_or_404(user_id)
+    if user.role == 'influencer':
+        return redirect(url_for('iprofile'))
+    if user.role == 'sponsor':
+        return redirect(url_for('sprofile'))
+    if user.role =='admin':
+        return redirect(url_for('admin_dash'))
+        
+    
 # Login Page for both User and Influencer
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -151,11 +153,11 @@ def logout():
 def iprofile():
     user_id = session.get('user_id')
     if not user_id:
-        return redirect(url_for('user_login'))
+        return redirect(url_for('login'))
 
     user = User.query.get_or_404(user_id)
-    if user.role != 'influencer':
-        return redirect(url_for('user_login'))
+    if user.role == 'sponsor':
+        return redirect(url_for('sprofile'))
 
     profile = {
         'username': user.username,
@@ -167,11 +169,12 @@ def iprofile():
         'ratings': 4.5,  # This should be calculated based on actual data
         'earnings': 1000,  # This should be calculated based on actual data
         'campaign_progress': 75,  # This should be calculated based on actual data
-        'profile_picture': 'path_to_profile_picture.jpg'  # This should be fetched from the database or storage
     }
 
-    sponsor_requests = AdRequest.query.filter_by(influencer_name=user.username).all()
-    return render_template('Iprofile.html', profile=profile, sponsor_requests=sponsor_requests)
+    sponsor_requests = AdRequest.query.filter_by(influencer_name=user.username,status='NIL').all()
+    accepted_requests = AdRequest.query.filter(AdRequest.influencer_name == user.username,AdRequest.status.in_(["accept", "renegotiate"])).all()
+    rejected_requests = AdRequest.query.filter_by(influencer_name=user.username,status="reject").all()
+    return render_template('Iprofile.html', profile=profile, sponsor_requests=sponsor_requests,accepted_requests=accepted_requests,rejected_requests=rejected_requests)
 
 @app.route('/update_profile', methods=['POST','GET'])
 @login_required
@@ -232,24 +235,81 @@ def Ifind():
 def Istat():
     return render_template('Istat.html')
 
-@app.route('/request_action/<int:request_id>/<action>')
-def request_action(request_id, action):
-    username = session.get('username')
 
-    sponsor_requests = AdRequest.query.filter_by(influencer_name=username).all()
-    # Sample logic to handle request actions
+@app.route('/request_action/<int:request_id>/<action>', methods=['GET'])
+def request_action(request_id, action):
+    user_id = session.get('user_id')
+    if user_id is None:
+        flash('User not logged in.', 'error')
+        return redirect(url_for('login'))  # Redirect to login if user is not logged in
+    
+    user = User.query.get_or_404(user_id)
+    sponsor_requests = AdRequest.query.filter_by(influencer_name=user.username).all()
+    
     for request in sponsor_requests:
-        if request['id'] == request_id:
-            if action in ['accept', 'reject', 'renegotiate']:
-                request['status'] = action
+        if request.id == request_id:
+            if action in ['accept', 'reject']:
+                request.status = action
+                db.session.commit()  # Save changes to the database
                 flash(f'Request {action}ed successfully.', 'success')
-                break
+            elif action == 'renegotiate':
+                new_budget = request.form.get('new_budget')
+                if new_budget:
+                    try:
+                        request.budget = float(new_budget)
+                        request.status = 'renegotiate'
+                        db.session.commit()  # Save changes to the database
+                        flash('Request renegotiated successfully.', 'success')
+                    except ValueError:
+                        flash('Invalid budget value.', 'error')
+                else:
+                    flash('No budget value provided for renegotiation.', 'error')
+            else:
+                flash('Invalid action.', 'error')
+            break
+    else:
+        flash('Request not found.', 'error')
+    
     return redirect(url_for('iprofile'))
 
 
+@app.route('/request_action/<int:request_id>/renegotiate', methods=['GET', 'POST'])
+def renegotiate(request_id):
+    user_id = session.get('user_id')
+    if user_id is None:
+        flash('User not logged in.', 'error')
+        return redirect(url_for('login'))  # Redirect to login if user is not logged in
+    
+    ad_request = AdRequest.query.get_or_404(request_id)
+    if ad_request.influencer_name != User.query.get(user_id).username:
+        flash('You do not have permission to renegotiate this request.', 'error')
+        return redirect(url_for('iprofile'))
+    
+    if request.method == 'POST':
+        # Process the form data
+        # Example: Update ad_request with new values from the form
+        ad_request.budget = request.form['new_budget']
+        db.session.commit()  # Save changes to the database
+        
+        flash('Renegotiation request submitted successfully.', 'success')
+        return redirect(url_for('sprofile'))
+    
+    return render_template('renegotiate.html', ad_request=ad_request, id=request_id)
+
+###################################################################
+
 @app.route("/sprofile",methods=['GET','POST'])
+@login_required
 def sprofile():
-    # Check if sponsor ID is in session
+    user_id = session.get('user_id')
+    if not user_id:
+        return render_template('landing_page.html')
+
+    user = User.query.get_or_404(user_id)
+    if user.role == 'influencer':
+        return redirect(url_for('iprofile'))
+
+    
     if 'user_id' in session:
         sponsor_id = session['user_id']
         # Fetch sponsor data from the database
@@ -275,6 +335,7 @@ def sprofile():
     
 
 @app.route('/supdate_profile', methods=['POST'])
+@login_required
 def supdate_profile():
     user_id = session.get('user_id')
     if not user_id:
@@ -294,17 +355,20 @@ def supdate_profile():
     return redirect(url_for('s_profile'))
 
 @app.route('/sponsor/campaigns')
+@login_required
 def s_campaigns():
     campaigns = Campaign.query.all()
     return render_template('s_campaigns.html',campaigns=campaigns)
 
 @app.route('/sponsor/stats')
+@login_required
 def sstats():
     return render_template('s_stats.html')
 
 
 
 @app.route('/sponsor/find_sponsor',methods=['GET','POST'])
+@login_required
 def sfind():
     results2 = None
     if request.method == 'POST':
@@ -335,13 +399,14 @@ def sfind():
 
 
 @app.route('/add_campaign', methods=['GET', 'POST'])
+@login_required
 def add_campaign():
     if request.method == 'POST':
         user_id = session.get('user_id')
         campaign_name = request.form['campaign_name']
         category = request.form['category']
         budget = float(request.form['budget'])
-        status = request.form['status']
+        status = "NIL"
         products = request.form['products']
         goals = request.form['goals']
         progress = int(request.form['progress'])
@@ -371,6 +436,7 @@ def add_campaign():
     return render_template('add_campaign.html')
 
 @app.route('/edit_campaign/<int:campaign_id>', methods=['GET', 'POST'])
+@login_required
 def edit_campaign(campaign_id):
     campaign = Campaign.query.get_or_404(campaign_id)
 
@@ -393,6 +459,7 @@ def edit_campaign(campaign_id):
 
 
 @app.route('/delete_campaign/<int:campaign_id>', methods=['POST','GET'])
+@login_required
 def delete_campaign(campaign_id):
     campaign = Campaign.query.get_or_404(campaign_id)
     db.session.delete(campaign)
@@ -400,12 +467,10 @@ def delete_campaign(campaign_id):
     flash('Campaign deleted successfully!', 'success')
     return redirect(url_for('s_campaigns'))
 
-######################################
-
 
 @app.route('/add_ad_request/<int:campaign_id>', methods=['GET', 'POST'])
+@login_required
 def add_ad_request(campaign_id):
-    #campaign = Campaign.query.get_or_404(campaign_id)
     if request.method == 'POST':
         ad_name = request.form['ad_name']
         description = request.form['description']
@@ -432,12 +497,14 @@ def add_ad_request(campaign_id):
     return render_template('add_ad_request.html', campaign_id=campaign_id)
 
 @app.route('/view_ad_requests/<int:campaign_id>', methods=['GET'])
+@login_required
 def view_ad_requests(campaign_id):
-    campaign = Campaign.query.get_or_404(campaign_id)
-    ad_requests = AdRequest.query.filter_by(campaign_id=campaign_id).all()
-    return render_template('view_ad_request.html', campaign=campaign, ad_requests=ad_requests)
+    c = Campaign.query.get_or_404(id)
+    ad = AdRequest.query.filter_by(campaign_id=campaign_id).all()
+    return render_template('view_ad_request.html', campaign=c, ad_requests=ad)
 
 @app.route('/edit_ad_request/<int:ad_request_id>', methods=['POST'])
+@login_required
 def edit_ad_request(ad_request_id):
     ad_request = AdRequest.query.get_or_404(ad_request_id)
     ad_request.ad_name = request.form['ad_name']
@@ -449,9 +516,11 @@ def edit_ad_request(ad_request_id):
 
     db.session.commit()
     flash('Ad request updated successfully!', 'success')
-    return redirect(url_for('view_ad_requests', campaign_id=ad_request.campaign_id))
+    return redirect(url_for('view_ad_requests', campaign_id=ad_request.id))
 
+## Delete Ad Request
 @app.route('/delete_ad_request/<int:ad_request_id>', methods=['POST'])
+@login_required
 def delete_ad_request(ad_request_id):
     ad_request = AdRequest.query.get_or_404(ad_request_id)
     campaign_id = ad_request.campaign_id
@@ -459,5 +528,62 @@ def delete_ad_request(ad_request_id):
     db.session.commit()  # Commit the deletion to the database
     flash('Ad request deleted successfully!', 'success')
     return redirect(url_for('view_ad_requests', campaign_id=campaign_id))
+
+
+
+
+
+
+
+## Admin DashBoard
+
+@app.route('/admin_dash')
+def admin_dash():
+    users = User.query.filter(~User.flagged.any(),User.role != 'admin').all()
+    flagged_users = FlaggedUser.query.all()
+    
+    # Fetch flagged campaigns as needed (replace with your actual logic)
+    flagged_campaigns = []  # Example, replace with actual data fetching logic
+
+    # Fetch ongoing campaigns and their progress
+    campaigns = Campaign.query.all()
+    return render_template('admin_dash.html', users=users, flagged_users=flagged_users, flagged_campaigns=flagged_campaigns, campaigns=campaigns)
+
+@app.route('/flag_user/<int:user_id>', methods=['POST'])
+def flag_user(user_id):
+    user = User.query.get(user_id)
+    if user:
+        # Check if the user is already flagged
+        flagged_user = FlaggedUser.query.filter_by(user_id=user_id).first()
+        if not flagged_user:
+            new_flagged_user = FlaggedUser(user_id=user.id, username=user.username, role=user.role)
+            db.session.add(new_flagged_user)
+            db.session.commit()
+            flash('User has been flagged successfully.', 'success')
+        else:
+            flash('User is already flagged.', 'warning')
+    return redirect(url_for('admin_dash'))
+
+@app.route('/unflag_user/<int:user_id>', methods=['POST'])
+def unflag_user(user_id):
+    flagged_user = FlaggedUser.query.filter_by(user_id=user_id).first()
+    if flagged_user:
+        db.session.delete(flagged_user)
+        db.session.commit()
+        flash('User has been unflagged successfully.', 'success')
+    return redirect(url_for('admin_dash'))
+
+@app.route('/delete_user/<int:user_id>', methods=['POST'])
+def delete_user(user_id):
+    flagged_user = FlaggedUser.query.filter_by(user_id=user_id).first()
+    if flagged_user:
+        user = User.query.get(user_id)
+        db.session.delete(flagged_user)
+        db.session.delete(user)
+        db.session.commit()
+        flash('Flagged user has been deleted successfully.', 'success')
+    else:
+        flash('User must be flagged before deletion.', 'warning')
+    return redirect(url_for('admin_dash'))
 
 

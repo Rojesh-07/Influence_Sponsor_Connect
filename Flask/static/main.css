@@ -79,20 +79,6 @@ body {
     font-size: 2.5rem;
   }
 
-
-  .hero-section {
-    background: url('https://source.unsplash.com/random/1920x1080') no-repeat center center;
-    background-size: cover;
-    height: 100vh;
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-}
-.hero-section h1 {
-    font-size: 4rem;
-}
 .feature-section {
     padding: 60px 0;
 }
@@ -102,3 +88,48 @@ body {
 .login-buttons {
     margin-top: 40px;
 }
+
+
+.hero-section {
+  background: linear-gradient(135deg, #6e45e2, #88d3ce);
+  height: 80vh;
+  color: #ffffff;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.5s ease;
+}
+
+.hero-section h1 {
+  font-size: 3rem;
+  font-weight: bold;
+  transition: color 0.3s ease;
+}
+
+.hero-section p {
+  font-size: 1.25rem;
+  transition: color 0.3s ease;
+}
+
+.hero-section a.btn {
+  font-size: 1.125rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 30px;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.hero-section a.btn:hover {
+  background-color: #0056b3;
+  transform: scale(1.05);
+}
+
+.hero-section h1:hover {
+  color: #ffbb33;
+}
+
+.hero-section p:hover {
+  color: #f39c12;
+}
+
+

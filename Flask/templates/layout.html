@@ -7,13 +7,13 @@
 
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
-
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='main.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 
     {% if title %}
-        <title>Influencer Sponcer - {{ title }}</title>
+        <title>Influencer Sponsor - {{ title }}</title>
     {% else %}
-        <title>Influencer Sponcer</title>
+        <title>Influencer Sponsor</title>
     {% endif %}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     {% block head %}{% endblock %}
@@ -22,13 +22,13 @@
     <header class="site-header">
       <nav class="navbar navbar-expand-md navbar-dark bg-steel fixed-top">
         <div class="container">
-          <a class="navbar-brand mr-4" href="/">Influencer Sponcer Connect</a>
+          <a class="navbar-brand mr-4" href="/">Influencer Sponsor Connect</a>
           <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarToggle" aria-controls="navbarToggle" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
           </button>
           <div class="collapse navbar-collapse" id="navbarToggle">
             <div class="navbar-nav mr-auto">
-
+              <!-- Empty space for future additions -->
             </div>
             <!-- Navbar Right Side -->
             <div class="navbar-nav">
@@ -40,10 +40,12 @@
                   <a class="nav-item nav-link" href="{{ url_for('sstats') }}">Stats</a>          
                   <a class="nav-item nav-link" href="{{ url_for('logout') }}">Logout</a>
                 {% elif current_user.role == 'influencer' %}
+                  <a class="nav-item nav-link" href="{{ url_for('iprofile') }}">Profile</a> 
                   <a class="nav-item nav-link" href="{{ url_for('Ifind') }}">Find</a>
                   <a class="nav-item nav-link" href="{{ url_for('Istat') }}">Stats</a>
                   <a class="nav-item nav-link" href="{{ url_for('logout') }}">Logout</a>
-
+                {% elif current_user.role =='admin' %}
+                  <a class="nav-item nav-link" href="{{ url_for('logout') }}">Logout</a>
                 {% endif %}
               {% else %}
                 <a class="nav-item nav-link" href="{{ url_for('login') }}">Login</a>
@@ -56,36 +58,34 @@
         </div>
       </nav>
     </header>
-    <main role="main" class="container">
+    <main role="main" class="container mt-5">
       <div class="row">
-        <div class="col-md-8">
+        <div class="col-md-8 offset-md-2">
           {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
               {% for category, message in messages %}
-                <div class="alert alert-{{ category }}">
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
                   {{ message }}
+                  <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                  </button>
                 </div>
               {% endfor %}
             {% endif %}
           {% endwith %}
           {% block content %}{% endblock %}
         </div>
-        <!-- <div class="col-md-4">
-          <div class="content-section">
-            <h3>Our Sidebar</h3>
-            <p class='text-muted'>You can put any information here you'd like.
-              <ul class="list-group">
-                <li class="list-group-item list-group-item-light">Latest Posts</li>
-                <li class="list-group-item list-group-item-light">Announcements</li>
-                <li class="list-group-item list-group-item-light">Calendars</li>
-                <li class="list-group-item list-group-item-light">etc</li>
-              </ul>
-            </p>
-          </div>
-        </div>
-      </div> -->
+      </div>
     </main>
 
+    <!-- Footer -->
+    <footer class="bg-dark text-white mt-5 p-4 text-center">
+        <p>&copy; 2024 Influencer Sponsor Connect. All Rights Reserved.</p>
+        <a href="#" class="text-white"><i class="fab fa-facebook-f mx-2"></i></a>
+        <a href="#" class="text-white"><i class="fab fa-twitter mx-2"></i></a>
+        <a href="#" class="text-white"><i class="fab fa-instagram mx-2"></i></a>
+        <a href="#" class="text-white"><i class="fab fa-linkedin-in mx-2"></i></a>
+    </footer>
 
     <!-- Optional JavaScript -->
     <!-- jQuery first, then Popper.js, then Bootstrap JS -->

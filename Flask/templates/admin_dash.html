@@ -1,0 +1,48 @@
+{% extends "layout.html" %}
+
+{% block content %}
+    <h1>Welcome to the Admin Dashboard</h1>
+    
+    <div class="my-4">
+        <h2>Ongoing Campaign Progress</h2>
+        {% for campaign in campaigns %}
+            <div class="progress mb-3">
+                <div class="progress-bar" role="progressbar" style="width: {{ campaign.progress }}" aria-valuenow="{{ campaign.progress }}" aria-valuemin="0" aria-valuemax="100">
+                    {{ campaign.campaign_name }} - {{ campaign.progress }}%
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+
+    <div class="my-4">
+        <h2>Users</h2>
+        <ul class="list-group">
+            {% for user in users %}
+                <li class="list-group-item">
+                    <strong>{{ user.username }}</strong> - {{ user.role }}
+                    <form method="post" action="{{ url_for('flag_user', user_id=user.id) }}" style="display:inline;">
+                        <button type="submit" class="btn btn-danger btn-sm">Flag</button>
+                    </form>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="my-4">
+        <h2>Flagged Users</h2>
+        <ul class="list-group">
+            {% for flagged_user in flagged_users %}
+                <li class="list-group-item">
+                    <strong>{{ flagged_user.username }}</strong> - {{ flagged_user.role }}
+                    <form method="post" action="{{ url_for('unflag_user', user_id=flagged_user.user_id) }}" style="display:inline;">
+                        <button type="submit" class="btn btn-success btn-sm">Unflag</button>
+                    </form>
+                    <form method="post" action="{{ url_for('delete_user', user_id=flagged_user.user_id) }}" style="display:inline;">
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endblock %}
