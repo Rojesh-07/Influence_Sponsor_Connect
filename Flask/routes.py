@@ -9,7 +9,6 @@ from sqlalchemy.exc import IntegrityError
 from flask_login import login_required,login_user,logout_user
 
 
-
 @app.route('/')
 @app.route('/home')
 def landing_page():
@@ -24,8 +23,8 @@ def landing_page():
         return redirect(url_for('sprofile'))
     if user.role =='admin':
         return redirect(url_for('admin_dash'))
-        
-    
+
+   
 # Login Page for both User and Influencer
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -123,8 +122,6 @@ def Ssignup():
 
     return render_template('Ssignup.html')
 
-
-
 # Influencer Signup
 @app.route('/Isignup', methods=['GET', 'POST'])
 def Isignup():
@@ -137,19 +134,7 @@ def Isignup():
         reach = int(request.form['reach'])
         platforms = ','.join(request.form.getlist('platforms'))
 
-        new_user = User(
-            username=username,
-            password=generate_password_hash(password),
-            role='influencer',
-            company_name=None,
-            name=name,
-            category=category,
-            niche=niche,
-            reach=reach,
-            budget=None,
-            platforms=platforms,
-            blacklist=False
-        )
+        new_user = User( username=username, password=generate_password_hash(password),role='influencer',company_name=None,name=name,category=category,niche=niche,reach=reach,budget=None,platforms=platforms,blacklist=False)
 
         try:
             db.session.add(new_user)
@@ -159,13 +144,18 @@ def Isignup():
         except IntegrityError:
             db.session.rollback()
             flash('Username already exists. Please choose a different username.', 'danger')
-    
+
     return render_template('Isignup.html')
 
 @app.route('/logout')
 def logout():
     logout_user()
     return render_template('landing_page.html')
+
+##################################################
+################################################## Influencer
+##################################################
+
 
 @app.route("/iprofile",methods=['GET','POST'])
 @login_required
@@ -174,21 +164,15 @@ def iprofile():
     if not user_id:
         return redirect(url_for('login'))
     
-
     user = User.query.get_or_404(user_id)
     if user.role == 'sponsor':
         return redirect(url_for('sprofile'))
 
     profile = {
-        'username': user.username,
-        'name': user.name,
-        'category': user.category,
-        'niche': user.niche,
-        'reach': user.reach,
+        'username': user.username, 'name': user.name,'category': user.category,
+        'niche': user.niche,'reach': user.reach,
         'platforms': user.platforms.split(',') if user.platforms else [],
-        'ratings': 4.5,  # This should be calculated based on actual data
-        'earnings': 1000,  # This should be calculated based on actual data
-        'campaign_progress': 75,  # This should be calculated based on actual data
+        'ratings': 4.5, 'earnings': 1000,  'campaign_progress': 75,  
     }
 
     sponsor_requests = AdRequest.query.filter_by(influencer_name=user.username,status='NIL').all()
@@ -226,29 +210,10 @@ def Ifind():
     results1 = None
     if request.method == 'POST':
         search_query = request.form['search_query'].lower()
-        
-        # Search logic for users and campaigns
-        users = User.query.filter(
-            (User.role=='sponsor')&
-            ((User.username.ilike(f"%{search_query}%")) |
-            (User.company_name.ilike(f"%{search_query}%")) |
-            (User.name.ilike(f"%{search_query}%")) |
-            (User.category.ilike(f"%{search_query}%")) |
-            (User.niche.ilike(f"%{search_query}%"))
-        )).all()
-        
-        campaigns = Campaign.query.filter(
-            (Campaign.campaign_name.ilike(f"%{search_query}%")) |
-            (Campaign.category.ilike(f"%{search_query}%")) |
-            (Campaign.products.ilike(f"%{search_query}%")) |
-            (Campaign.goals.ilike(f"%{search_query}%"))
-        ).all()
-        
-        results1 = {
-            'users': users,
-            'campaigns': campaigns
+        users = User.query.filter( (User.role=='sponsor')& ((User.username.ilike(f"%{search_query}%")) | (User.company_name.ilike(f"%{search_query}%")) | (User.name.ilike(f"%{search_query}%")) | (User.category.ilike(f"%{search_query}%")) | (User.niche.ilike(f"%{search_query}%")))).all()
+        campaigns = Campaign.query.filter( (Campaign.campaign_name.ilike(f"%{search_query}%")) |(Campaign.category.ilike(f"%{search_query}%")) |(Campaign.products.ilike(f"%{search_query}%")) |(Campaign.goals.ilike(f"%{search_query}%"))).all()
+        results1 = {'users': users, 'campaigns': campaigns
         }
-
     return render_template('ifind.html',results1=results1)
 
 @app.route('/Istat')
@@ -256,13 +221,12 @@ def Ifind():
 def Istat():
     return render_template('Istat.html')
 
-
 @app.route('/request_action/<int:request_id>/<action>', methods=['GET'])
 def request_action(request_id, action):
     user_id = session.get('user_id')
     if user_id is None:
         flash('User not logged in.', 'error')
-        return redirect(url_for('login'))  # Redirect to login if user is not logged in
+        return redirect(url_for('login')) 
     
     user = User.query.get_or_404(user_id)
     sponsor_requests = AdRequest.query.filter_by(influencer_name=user.username).all()
@@ -271,7 +235,7 @@ def request_action(request_id, action):
         if request.id == request_id:
             if action in ['accept', 'reject']:
                 request.status = action
-                db.session.commit()  # Save changes to the database
+                db.session.commit() 
                 flash(f'Request {action}ed successfully.', 'success')
             elif action == 'renegotiate':
                 new_budget = request.form.get('new_budget')
@@ -279,7 +243,7 @@ def request_action(request_id, action):
                     try:
                         print(request.action)
                         request.budget = float(new_budget)
-                        db.session.commit()  # Save changes to the database
+                        db.session.commit()  
                         print(request.action)
                         flash('Request renegotiated successfully.', 'success')
                     except ValueError:
@@ -300,7 +264,7 @@ def renegotiate(request_id):
     user_id = session.get('user_id')
     if user_id is None:
         flash('User not logged in.', 'error')
-        return redirect(url_for('login'))  # Redirect to login if user is not logged in
+        return redirect(url_for('login')) 
     
     ad_request = AdRequest.query.get_or_404(request_id)
     if ad_request.influencer_name != User.query.get(user_id).username:
@@ -308,18 +272,18 @@ def renegotiate(request_id):
         return redirect(url_for('iprofile'))
     
     if request.method == 'POST':
-        # Process the form data
-        # Example: Update ad_request with new values from the form
         ad_request.budget = request.form['new_budget']
         ad_request.status = 'renegotiate'
-        db.session.commit()  # Save changes to the database
+        db.session.commit() 
         
         flash('Renegotiation request submitted successfully.', 'success')
         return redirect(url_for('sprofile'))
     
     return render_template('renegotiate.html', ad_request=ad_request, id=request_id)
 
-###################################################################
+##################################################
+################################################## Sponsor
+##################################################
 
 @app.route("/sprofile",methods=['GET','POST'])
 @login_required
@@ -428,6 +392,10 @@ def sfind():
     return render_template('f_sponsor.html',results2=results2)
 
 
+##################################################
+################################################## Campaingn Name
+##################################################
+
 @app.route('/add_campaign', methods=['GET', 'POST'])
 @login_required
 def add_campaign():
@@ -482,7 +450,7 @@ def edit_campaign(campaign_id):
         campaign.end_date = datetime.strptime(request.form['end_date'], '%Y-%m-%d').date()
 
         db.session.commit()
-        return redirect(url_for('s_campaigns'))  # Redirect to sponsor dashboard after updating campaign
+        return redirect(url_for('s_campaigns'))
 
     return render_template('edit_campaign.html', campaign=campaign)
 
@@ -493,7 +461,7 @@ def edit_campaign(campaign_id):
 def delete_campaign(campaign_id):
     campaign = Campaign.query.get_or_404(campaign_id)
     db.session.delete(campaign)
-    db.session.commit()  # Commit the deletion to the database
+    db.session.commit() 
     flash('Campaign deleted successfully!', 'success')
     return redirect(url_for('s_campaigns'))
 
@@ -560,24 +528,17 @@ def delete_ad_request(ad_request_id):
     flash('Ad request deleted successfully!', 'success')
     return redirect(url_for('view_ad_requests', campaign_id=campaign_id))
 
+##################################################
+################################################## Admin
+##################################################
 
-
-
-
-
-
-## Admin DashBoard
 
 @app.route('/admin_dash')
 @login_required
 def admin_dash():
     users = User.query.filter(~User.flagged.any(),User.role != 'admin').all()
     flagged_users = FlaggedUser.query.all()
-    
-    # Fetch flagged campaigns as needed (replace with your actual logic)
     flagged_campaigns = []  
-
-    # Fetch ongoing campaigns and their progress
     campaigns = Campaign.query.all()
     return render_template('admin_dash.html', users=users, flagged_users=flagged_users, flagged_campaigns=flagged_campaigns, campaigns=campaigns)
 
@@ -630,6 +591,4 @@ def delete_user(user_id):
         flash('User must be flagged before deletion.', 'warning')
     
     return redirect(url_for('admin_dash'))
-
-
 
